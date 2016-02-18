@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define COMMAND_LENGTH 1024
 #define NUM_TOKENS (COMMAND_LENGTH / 2 + 1)
@@ -23,7 +24,6 @@ void read_command(char *buff, char *tokens[], _Bool *in_background)
   *in_background = false;
 
   	// Read input
-
   	int length = read(STDIN_FILENO, buff, COMMAND_LENGTH-1);
   	if ( (length < 0) && (errno !=EINTR) )
   	{
