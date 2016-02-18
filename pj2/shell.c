@@ -7,8 +7,15 @@
 
 #define COMMAND_LENGTH 1024
 #define NUM_TOKENS (COMMAND_LENGTH / 2 + 1)
+#define DELIMITER "  \n\a\t\r" 
 
-/**
+
+/* -----------------------------------------------
+  Function Prototypes
+  ------------------------------------------------
+*/ 
+
+/*
 * Read a command from the keyboard into the buffer 'buff' and tokenize it
 * such that 'tokens[i]' points into 'buff' to the i'th token in the command.
 * buff: Buffer allocated by the calling code. Must be at least
@@ -19,6 +26,22 @@
 * in_background: pointer to a boolean variable. Set to true if user entered
 * an & as their last token; otherwise set to false.
 */
+
+int tokenize_command(char *buff, char *tokens[]){
+    //returns token count
+    char* token;
+    int pos = 0;
+    
+    token = strtok(buff, DELIMITER);
+    while (token != NULL){
+      tokens[pos] = token;
+      token = strtok(NULL, DELIMITER);
+      pos++;
+    }
+
+    return pos;
+}
+
 void read_command(char *buff, char *tokens[], _Bool *in_background)
 {
   *in_background = false;
@@ -36,7 +59,7 @@ void read_command(char *buff, char *tokens[], _Bool *in_background)
   	if (buff[strlen(buff) - 1] == '\n') {
   		buff[strlen(buff) - 1] = '\0';
   	}
-
+  	
   	// Tokenize (saving original command string)
   	int token_count = tokenize_command(buff, tokens);
   	if (token_count == 0) {
@@ -48,7 +71,10 @@ void read_command(char *buff, char *tokens[], _Bool *in_background)
   		*in_background = true;
   		tokens[token_count - 1] = 0;
   	}
+ 
 }
+
+
 
 /**
 * Main and Execute Commands
@@ -57,6 +83,7 @@ int main(int argc, char* argv[])
 {
 char input_buffer[COMMAND_LENGTH];
 char *tokens[NUM_TOKENS];
+int i = 0;//testing
 while (true) {
 
 // Get command
@@ -66,6 +93,9 @@ write(STDOUT_FILENO, "> ", strlen("> "));
 _Bool in_background = false;
 read_command(input_buffer, tokens, &in_background);
 
+ for (i = 0; i < 3; i++){
+      printf ("        test: tokens[%d]=%s\n", i, tokens[i]);
+    }//testing
 /**
 * Steps For Basic Shell:
 * 1. Fork a child process
