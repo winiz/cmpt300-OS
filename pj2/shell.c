@@ -144,15 +144,12 @@ int main(int argc, char* argv[]){
     while (cwdBuff[pos] != '\0'){
       pos++;
     }
-    char cwd[pos+2];
+    char cwd[pos+1];
     strcpy (cwd, cwdBuff);
     cwd[pos] = '>';
-    cwd[pos+1] = ' ';
-    
     // Use write because we need to use read()/write() to work with
     // signals, and they are incompatible with printf().
     write(STDOUT_FILENO, cwd, strlen(cwd));
-    
     // Get command
     _Bool in_background = false;
     read_command(input_buffer, tokens, &in_background);
@@ -162,8 +159,6 @@ int main(int argc, char* argv[]){
       printf ("        test: tokens[%d]=%s\n", i, tokens[i]);
     }//testing
     */
-    
-    // Takes token and exucute the corresponding command
     meat(tokens, &in_background);
   }
   return 0;
