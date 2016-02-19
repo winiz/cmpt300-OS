@@ -80,33 +80,21 @@ void read_command(char *buff, char *tokens[], _Bool *in_background)
 	}
 }
 
-int history_add_command(int spot, char** history, int argument_count, char *tokens[]){
-    int i = 0;
+int history_add_command(int spot, char history[HISTORY_DEPTH][COMMAND_LENGTH], char input_buffer[COMMAND_LENGTH]){
     int k = 0;
-    for (i=0; i<spot; i++){
-        for (k = 0; k < argument_count; k++){
-            history[i][k] = tokens[i][k];
-            argument_count++;
+        for (k=0; k<COMMAND_LENGTH; k++){
+        history[spot][k] = input_buffer[k];
+            k++;
         }
-        i++;
-    }
     return 0;
 }
 
 //int history_retrieve_command(int spot, char** history,int* agrv,){};
 
-void history_print10(int spot, char** history, int* argument_count){
-    int i = 0;
-    int k = 0;
-    int tmp;
-
-    for (i=0; i<spot; i++){
-        tmp = argument_count[10 % i]; //coresboding argument_count
-        for (k = 0; k < tmp; k++){
-            printf ("the commands are %s", history[i][k]);
-            k++;
-        }
-        i++;
+void history_print(int spot, char history[HISTORY_DEPTH][COMMAND_LENGTH]){
+   int i = 0;
+   for (i=0; i<spot; i++){
+        printf("past commands: %s\n", history[i]);
     }
 }
 
@@ -118,14 +106,13 @@ int main(int argc, char* argv[])
     pid_t pid;
     int status;
     char input_buffer[COMMAND_LENGTH];
+    int total_command = 0;
     char *tokens[NUM_TOKENS];
-    char history[HISTORY_DEPTH][COMMAND_LENGTH]; // global history 2D arrays
-    int spot = 0; //there is only 10 spots for the most recent 10;
-    int total_command; // counting commands through out history of run time
-    int argument_count; // counting how many arguments each command has
-    int argument_vector[1024]; // keeping track of evey argument_count counts
-    int i = 0; // help clearing the old stuff in tokens
-    int loop = 0; 
+     // counting commands through out history of run time
+    char history[HISTORY_DEPTH][COMMAND_LENGTH]; // global history 2D array
+    int spot = 0;
+    int i = 0;
+    
     while (true) 
     {
 
@@ -149,16 +136,10 @@ int main(int argc, char* argv[])
 // Filling in tokens list with new commands 
 // from charaters buffer called input_buffer
     read_command(input_buffer, tokens, &in_background);
-    argument_count = tokenize_command(input_buffer, tokens);
-    argument_vector[loop] = argument_count;
     total_command++;
     spot = 10 % total_command;
-    loop++;
-    history_add_command(spot, history, argument_count, tokens);
-    history_print10(spot, history, argument_vector, tokens);
-    
-    
-    
+    history_add_command(spot, history,input_buffer);
+
     char *cmd = tokens[0];
     if (tokens[0] == NULL)
     {
@@ -183,7 +164,7 @@ int main(int argc, char* argv[])
     }
     if (strcmp(cmd,"history") == 0)
     {
-    	//WRITE CODE HERE
+    	history_print(spot, history);
     }
     
     
@@ -219,5 +200,6 @@ int main(int argc, char* argv[])
 • * read_command() again immediately.
 • */
     }
+    
     return 0;
 }
