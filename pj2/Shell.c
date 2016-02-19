@@ -13,7 +13,7 @@
 #define DELIMITER "  \n\a\t\r"
 #define COMMAND_LENGTH 1024
 #define NUM_TOKENS (COMMAND_LENGTH / 2 + 1)
-#define HISTORY 1024
+#define HISTORY_DEPTH 10
 
 /**
 * Read a command from the keyboard into the buffer 'buff' and tokenize it
@@ -28,7 +28,7 @@
 • */
 int tokenize_command(char *buff, char *tokens[])
 {
-	char* token;
+	char* token;   // a token is word
     int pos = 0;
     
     token = strtok(buff, DELIMITER);
@@ -80,6 +80,27 @@ void read_command(char *buff, char *tokens[], _Bool *in_background)
 	}
 }
 
+int history_add_command(int spot, char** history,int argc, char** tokens){
+    int i = 0;
+    for (i=0; i<spot; i++){
+       history[i][argc] = tokens[i][argc];
+       i++;
+    }
+    return 0;
+}
+
+//int history_retrieve_command(int spot, char** history,int* agrv,){};
+
+void history_print10(int spot, char** history, int* argv){
+    int i = 0;
+    int tmp;
+    for (i=0; i<spot; i++){
+        tmp = argv[i];
+        printf ("the commands are %s", history[i][tmp]);
+        i++;
+    }
+}
+
 /**
 • * Main and Execute Commands
 • */
@@ -89,8 +110,13 @@ int main(int argc, char* argv[])
     int status;
     char input_buffer[COMMAND_LENGTH];
     char *tokens[NUM_TOKENS];
-    //char **history[HISTORY][COMMAND_LENGTH];
-    
+    char history[HISTORY_DEPTH][COMMAND_LENGTH]; // global history 2D arrays
+    int spot = 0; //there is only 10 spots for the most recent 10;
+    int total_command; // counting commands through out history of run time
+    int argc; // counting how many arguments each command has
+    int argv[1024]; // keeping track of evey argc counts
+    int i = 0; // help clearing the old stuff in tokens
+    int loop = 0; 
     while (true) 
     {
 
@@ -104,9 +130,26 @@ int main(int argc, char* argv[])
 
 //    write(STDOUT_FILENO, "> ", strlen("> "));
     _Bool in_background = false;
+
+// Clear last tokens list
+    while (tokens[i] != NUll){
+        tokens[i] = NULl;
+        i++;
+    }
+    
+// Filling in tokens list with new commands 
+// from charaters buffer called input_buffer
+    read_command(input_buffer, tokens, &in_background);
+    argc = tokenize_command(buff, tokens);
+    argv[loop] = argc;
+    total_command++;
+    spot = 10 % total_command;
+    loop++;
+    history_add_command(spot, history, tokens);
+    history_print10();
     
     
-    read_command(input_buffer, tokens, &in_background); 
+    
     char *cmd = tokens[0];
     if (tokens[0] == NULL)
     {
