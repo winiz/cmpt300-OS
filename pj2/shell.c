@@ -130,34 +130,41 @@ int shell_cd(char* tokens[]){
 * Main and Execute Commands
 */
 int main(int argc, char* argv[]){
-  
+  // Decleration and Initialization
   char input_buffer[COMMAND_LENGTH];
   char *tokens[NUM_TOKENS];
-  char cwdBuff[1024];
+  char cwdBuff[1024]; // for directory to work
   int i = 0; //testing
   int pos = 0;
   
-
+  // Main prompt loop
   while (true) {
-  // Get command
-  // Use write because we need to use read()/write() to work with
-  // signals, and they are incompatible with printf().
-  getcwd(cwdBuff, sizeof(cwdBuff));
-  while (cwdBuff[pos] != '\0'){
-    pos++;
-  }
-  char cwd[pos+1];
-  strcpy (cwd, cwdBuff);
-  cwd[pos] = '>';
-  write(STDOUT_FILENO, cwd, strlen(cwd));
-  _Bool in_background = false;
-  read_command(input_buffer, tokens, &in_background);
-
-  for (i = 0; i < 3; i++){
-    printf ("        test: tokens[%d]=%s\n", i, tokens[i]);
-  }//testing
+    // Add current directory info to prompt
+    getcwd(cwdBuff, sizeof(cwdBuff));
+    while (cwdBuff[pos] != '\0'){
+      pos++;
+    }
+    char cwd[pos+2];
+    strcpy (cwd, cwdBuff);
+    cwd[pos] = '>';
+    cwd[pos+1] = ' ';
+    
+    // Use write because we need to use read()/write() to work with
+    // signals, and they are incompatible with printf().
+    write(STDOUT_FILENO, cwd, strlen(cwd));
+    
+    // Get command
+    _Bool in_background = false;
+    read_command(input_buffer, tokens, &in_background);
   
-  meat(tokens, &in_background);
+    /*
+    for (i = 0; i < 3; i++){
+      printf ("        test: tokens[%d]=%s\n", i, tokens[i]);
+    }//testing
+    */
+    
+    // Takes token and exucute the corresponding command
+    meat(tokens, &in_background);
   }
   return 0;
 }
