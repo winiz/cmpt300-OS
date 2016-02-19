@@ -146,10 +146,9 @@ int main(int argc, char* argv[]){
   while (cwdBuff[pos] != '\0'){
     pos++;
   }
-  char cwd[pos+2];
+  char cwd[pos+1];
   strcpy (cwd, cwdBuff);
-  printf("%s",cwd);
-  cwd[pos+2] = '>';
+  cwd[pos] = '>';
   write(STDOUT_FILENO, cwd, strlen(cwd));
   _Bool in_background = false;
   read_command(input_buffer, tokens, &in_background);
