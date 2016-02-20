@@ -86,28 +86,34 @@ void history_add(int current_depth,
     int i = 0;
     strcpy(history[current_depth-1], input_buffer);
     }
+    
 
 void history_print(int current_depth, char history[HISTORY_DEPTH][COMMAND_LENGTH]){
     printf ("current_depth is %d\n",current_depth);
     int firstone; 
     int lastone;
-    int i;
+    int i,count;
+    int k = 0;
+    char *chops[NUM_TOKENS];
     if (current_depth < 10){
         firstone = 0;
         lastone = current_depth - 1;
     }
     else{
         firstone = current_depth - 10; // -9 to get the first one's current depth # then -1 to get [xxx] #
-        lastone = current_depth - 1;
+        lastone = current_depth;
     }
     printf ("firstone is %d\n",firstone);
     printf ("lastone is %d\n",lastone);
-    
-    for (i = firstone; i <= lastone; i=i+1){
-        printf ("%d %s \n", i+1, history[i]);
+    for (i = firstone; i < lastone; i=i+1){
+        count = tokenize_command(history[i], chops);
+        printf ("%d  ", i+1);
+        for (k = 0; k < count; k=k+1){
+            printf ("%s", chops[k]);
         }
+        printf ("\n");
     }
-
+}
 /**
 • * Main and Execute Commands
 • */
