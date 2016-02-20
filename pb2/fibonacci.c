@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 int main(){
-    char *x = "foo";
+    char x = 1;
      
     int returnvalue= fork();
     if (returnvalue == 0){

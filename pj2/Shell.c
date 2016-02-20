@@ -13,7 +13,7 @@
 #define DELIMITER "  \n\a\t\r"
 #define COMMAND_LENGTH 1024
 #define NUM_TOKENS (COMMAND_LENGTH / 2 + 1)
-#define HISTORY_DEPTH 10
+#define HISTORY_DEPTH 1024
 
 /**
 * Read a command from the keyboard into the buffer 'buff' and tokenize it
@@ -80,35 +80,33 @@ void read_command(char *buff, char *tokens[], _Bool *in_background)
 	}
 }
 
-int history_add_command(int spot, char** history, int argument_count, char *tokens[]){
+void history_add(int current_depth, 
+                char history[HISTORY_DEPTH][COMMAND_LENGTH], 
+                char input_buffer[]){
     int i = 0;
-    int k = 0;
-    for (i=0; i<spot; i++){
-        for (k = 0; k < argument_count; k++){
-            history[i][k] = tokens[i][k];
-            argument_count++;
-        }
-        i++;
+    strcpy(history[current_depth-1], input_buffer);
     }
-    return 0;
-}
 
-//int history_retrieve_command(int spot, char** history,int* agrv,){};
-
-void history_print10(int spot, char** history, int* argument_count){
-    int i = 0;
-    int k = 0;
-    int tmp;
-
-    for (i=0; i<spot; i++){
-        tmp = argument_count[10 % i]; //coresboding argument_count
-        for (k = 0; k < tmp; k++){
-            printf ("the commands are %s", history[i][k]);
-            k++;
-        }
-        i++;
+void history_print(int current_depth, char history[HISTORY_DEPTH][COMMAND_LENGTH]){
+    printf ("current_depth is %d\n",current_depth);
+    int firstone; 
+    int lastone;
+    int i;
+    if (current_depth < 10){
+        firstone = 0;
+        lastone = current_depth - 1;
     }
-}
+    else{
+        firstone = current_depth - 10; // -9 to get the first one's current depth # then -1 to get [xxx] #
+        lastone = current_depth - 1;
+    }
+    printf ("firstone is %d\n",firstone);
+    printf ("lastone is %d\n",lastone);
+    
+    for (i = firstone; i <= lastone; i=i+1){
+        printf ("%d %s \n", i+1, history[i]);
+        }
+    }
 
 /**
 • * Main and Execute Commands
@@ -118,14 +116,17 @@ int main(int argc, char* argv[])
     pid_t pid;
     int status;
     char input_buffer[COMMAND_LENGTH];
+    char input_buffercopy[COMMAND_LENGTH];
     char *tokens[NUM_TOKENS];
-    char history[HISTORY_DEPTH][COMMAND_LENGTH]; // global history 2D arrays
-    int spot = 0; //there is only 10 spots for the most recent 10;
-    int total_command; // counting commands through out history of run time
-    int argument_count; // counting how many arguments each command has
-    int argument_vector[1024]; // keeping track of evey argument_count counts
-    int i = 0; // help clearing the old stuff in tokens
-    int loop = 0; 
+    int i = 0; //for clear up tokens
+    
+    //init for histroy 
+    int spot = 0;
+    int current_depth = 0;
+    char history[HISTORY_DEPTH][COMMAND_LENGTH];
+ 
+    
+// Main loop
     while (true) 
     {
 
@@ -134,10 +135,9 @@ int main(int argc, char* argv[])
 // signals, and they are incompatible with printf().
 
 	char* dirname = getcwd(NULL, 0);
-	strcat(dirname, " $ ");
-    write(STDOUT_FILENO, dirname , strlen(dirname) + 1);
+	strcat(dirname, " > ");
+    write(STDOUT_FILENO, dirname, strlen(dirname) + 1);
 
-//    write(STDOUT_FILENO, "> ", strlen("> "));
     _Bool in_background = false;
 
 // Clear last tokens list
@@ -146,19 +146,13 @@ int main(int argc, char* argv[])
         i++;
     }
     
-// Filling in tokens list with new commands 
-// from charaters buffer called input_buffer
+//read, save, process commands
     read_command(input_buffer, tokens, &in_background);
-    argument_count = tokenize_command(input_buffer, tokens);
-    argument_vector[loop] = argument_count;
-    total_command++;
-    spot = 10 % total_command;
-    loop++;
-    history_add_command(spot, history, argument_count, tokens);
-    history_print10(spot, history, argument_vector, tokens);
+    current_depth++;
+    history_add(current_depth, history, input_buffer);
     
-    
-    
+// Filling in tokens list with new commands 
+// from charaters buffer called input_buffer    
     char *cmd = tokens[0];
     if (tokens[0] == NULL)
     {
@@ -183,7 +177,7 @@ int main(int argc, char* argv[])
     }
     if (strcmp(cmd,"history") == 0)
     {
-    	//WRITE CODE HERE
+    	history_print(current_depth,history);
     }
     
     
