@@ -82,20 +82,22 @@ void read_command(char *buff, char *tokens[], _Bool *in_background)
 
 int history_add_command(int spot, char history[HISTORY_DEPTH][COMMAND_LENGTH], char input_buffer[COMMAND_LENGTH]){
     int k = 0;
-        for (k=0; k<COMMAND_LENGTH; k++){
+        for (k=0; k<30; k++){
         history[spot][k] = input_buffer[k];
             k++;
         }
+        
+        history[spot][k] = '\0'; 
     return 0;
 }
 
 //int history_retrieve_command(int spot, char** history,int* agrv,){};
 
 void history_print(int spot, char history[HISTORY_DEPTH][COMMAND_LENGTH]){
-   int i = 0;
-   for (i=0; i<spot; i++){
-        printf("past commands: %s\n", history[i]);
-    }
+  int i = 0;
+  for (i=0;i<spot;i++){
+    printf("spot is %d, command is %s\n", i,history[i]);
+  }
 }
 
 /**
