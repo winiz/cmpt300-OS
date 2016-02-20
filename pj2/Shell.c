@@ -42,6 +42,7 @@ int tokenize_command(char *buff, char *tokens[])
     return pos;
 	
 }
+
 void read_command(char *buff, char *tokens[], _Bool *in_background)
 {
     
@@ -83,29 +84,35 @@ void read_command(char *buff, char *tokens[], _Bool *in_background)
 void history_add(int current_depth, 
                 char history[HISTORY_DEPTH][COMMAND_LENGTH], 
                 char input_buffer[]){
-    int i = 0;
     strcpy(history[current_depth-1], input_buffer);
+    printf ("history current_depth-1 is %s\n", history[current_depth-1]);
+    printf ("input_buffer is %s\n", input_buffer);
     }
     
 
 void history_print(int current_depth, char history[HISTORY_DEPTH][COMMAND_LENGTH]){
-    printf ("current_depth is %d\n",current_depth);
     int firstone; 
     int lastone;
     int i,count;
     int k = 0;
     char *chops[NUM_TOKENS];
+
     if (current_depth < 10){
         firstone = 0;
         lastone = current_depth - 1;
     }
     else{
         firstone = current_depth - 10; // -9 to get the first one's current depth # then -1 to get [xxx] #
-        lastone = current_depth;
+        lastone = current_depth - 1;
     }
-    printf ("firstone is %d\n",firstone);
-    printf ("lastone is %d\n",lastone);
-    for (i = firstone; i < lastone; i=i+1){
+    
+    count = tokenize_command(history[firstone], chops);
+/*
+    printf ("history[firstone] is %s\n", history[firstone]);
+    printf ("chops[0] is %s\n", chops[0]);
+    printf ("chops[1] is %s\n", chops[1]);
+/*
+    for (i = firstone; i <= lastone; i=i+1){
         count = tokenize_command(history[i], chops);
         printf ("%d  ", i+1);
         for (k = 0; k < count; k=k+1){
@@ -113,6 +120,7 @@ void history_print(int current_depth, char history[HISTORY_DEPTH][COMMAND_LENGTH
         }
         printf ("\n");
     }
+*/
 }
 /**
 • * Main and Execute Commands
