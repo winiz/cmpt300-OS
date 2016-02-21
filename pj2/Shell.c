@@ -1,6 +1,6 @@
-//winnie!
 #include <stdio.h>
 #include <stdbool.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -8,12 +8,17 @@
 #include <errno.h>
 #include <sys/syscall.h>
 #include <sys/wait.h>
-
+#include <linux/limits.h>
 
 #define DELIMITER "  \n\a\t\r"
 #define COMMAND_LENGTH 1024
 #define NUM_TOKENS (COMMAND_LENGTH / 2 + 1)
-#define HISTORY_DEPTH 1024
+#define HISTORY_DEPTH 10
+
+
+char history[HISTORY_DEPTH][COMMAND_LENGTH];
+int commandCount;
+
 
 /**
 * Read a command from the keyboard into the buffer 'buff' and tokenize it
@@ -26,200 +31,321 @@
 • * in_background: pointer to a boolean variable. Set to true if user entered
 • * an & as their last token; otherwise set to false.
 • */
+
+
+
+void add_command(char buff[], int ordernumber)
+{
+    int i = (ordernumber -1) % 10;
+    if (ordernumber > 10)
+    {
+        memset(&history[i][0], '\0', strlen(history[i]) + 1);
+    }
+    for(int j = 0; j < strlen(buff); j++)
+    {
+        history[i][j] = buff[j];
+    }
+    return;
+}
+char* retrieve_command(int ordernumber)
+{   
+    
+    int x = (ordernumber -1 ) % 10;
+
+    return history[x];
+    
+}
+void print_commands()
+{
+
+    int ordernum;
+    char doSomething[COMMAND_LENGTH];
+    int number;
+    if (commandCount < 10)
+    {
+        number = commandCount - 1;
+    }
+    else
+    {
+        number = 9;
+    }
+
+    while (number >= 0)
+    {
+        ordernum = commandCount - number;
+        
+        sprintf(doSomething, "%d", ordernum);
+        strcat(doSomething, "\t");
+        strcat(doSomething, retrieve_command(ordernum));
+        strcat(doSomething, "\n");
+        write(STDOUT_FILENO, doSomething , strlen(doSomething) + 1);
+        number--;
+    }
+    return;
+    
+}
+
+
 int tokenize_command(char *buff, char *tokens[])
 {
 	char* token;
+	char* temptoken;
+
     int pos = 0;
+    char temp[COMMAND_LENGTH];
+    
+    
     int i = 0;
     
-    while (tokens[i] != NULL)
+    while (i < NUM_TOKENS)
     {
-        tokens[i] = NULL;
+        tokens[i] = 0;
         i++;
     }
-
-    token = strtok(buff, DELIMITER);
     
+    memset(&temp[0], '\0', sizeof(temp));
 
+    strcpy(temp, buff);
+    token = strtok(temp, DELIMITER);
+    
+    
     while (token != NULL)
     {
-        tokens[pos] = malloc(sizeof(token[pos]));
-        tokens[pos] = token;
+        
+        temptoken = strdup(token);
+        tokens[pos] = strcat(temptoken,"");
         token = strtok(NULL, DELIMITER);
         pos++;
+//        free(temptoken);
     }
     return pos;
 	
 }
 void read_command(char *buff, char *tokens[], _Bool *in_background)
 {
-  *in_background = false;
-  // Read input
-  int length = read(STDIN_FILENO, buff, COMMAND_LENGTH-1);
-  if ( (length < 0) && (errno !=EINTR) )
-  {
-    perror("Unable to read command. Terminating.\n");
-    exit(-1); /* terminate with error */
-  }
-
-  // Null terminate and strip \n.
-  buff[length] = '\0';
-  if (buff[strlen(buff) - 1] == '\n') 
-  {
-    buff[strlen(buff) - 1] = '\0';
-  }
-
-  // Tokenize (saving original command string)
-  int token_count = tokenize_command(buff, tokens);
-  
-  if (token_count == 0) 
-  {
-    return;
-  }
-
-  // Extract if running in background:
-  if (token_count > 0 && strcmp(tokens[token_count - 1], "&") == 0) 
-  {
-    *in_background = true;
-    tokens[token_count - 1] = 0;
-  }
-}
-
-void history_add(int current_depth, 
-                char history[HISTORY_DEPTH][COMMAND_LENGTH], 
-                char* input_buffer){
-    strcpy(history[current_depth-1], input_buffer);
-}
     
-void history_print(int current_depth, char history[HISTORY_DEPTH][COMMAND_LENGTH]){
-    int firstone; 
-    int lastone;
-    int i,count;
-    int k = 0;
-    char *chops[NUM_TOKENS];
+	*in_background = false;
 
-    if (current_depth < 10){
-        firstone = 0;
-        lastone = current_depth - 1;
-    }
-    else{
-        firstone = current_depth - 10; // -9 to get the first one's current depth # then -1 to get [xxx] #
-        lastone = current_depth - 1;
-    }
-    
-    for (i = firstone; i <= lastone; i=i+1){
-        count = tokenize_command(history[i], chops);
-        printf ("%d  ", i+1);
-        for (k = 0; k < count; k=k+1){
-            printf ("%s ", chops[k]);
-        }
-        printf ("\n");
-    }
+	int length = read(STDIN_FILENO, buff, COMMAND_LENGTH-1);
+	if ( (length < 0) && (errno !=EINTR) )
+	{
+		perror("Unable to read command. Terminating.\n");
+		exit(-1); /* terminate with error */
+	}
+
+	// Null terminate and strip \n.
+	buff[length] = '\0';
+	if (buff[strlen(buff) - 1] == '\n') 
+	{
+		buff[strlen(buff) - 1] = '\0';
+	}
+
+
+	// Tokenize (saving original command string)
+
+
+	int token_count = tokenize_command(buff, tokens);
+	
+	if (token_count == 0) 
+	{
+		return;
+	}
+
+	// Extract if running in background:
+	if (token_count > 0 && strcmp(tokens[token_count - 1], "&") == 0) 
+	{
+		*in_background = true;
+		tokens[token_count - 1] = 0;
+	}
 }
+
 /**
 • * Main and Execute Commands
 • */
+void do_history(char* buff, char *tokens[], int ordernumber,  _Bool *in_background)
+{
+    memset(&buff[0],'\0', strlen(buff) + 1);
+    strcpy(buff,retrieve_command(ordernumber));
+    
+    write(STDOUT_FILENO, buff, strlen(buff) + 1);
+    write(STDOUT_FILENO, "\n", strlen("\n") + 1);
+    int len = tokenize_command(buff, tokens);
+    if (len > 0 && strcmp(tokens[len - 1], "&") == 0) 
+	{
+		*in_background = true;
+		tokens[len - 1] = 0;
+	}
+}
+
+void handle_SIGINT()
+{
+
+    write(STDOUT_FILENO, "\n" , strlen("\n") + 1);
+    print_commands();
+    return;
+}
 int main(int argc, char* argv[])
 {
     pid_t pid;
     int status;
     char input_buffer[COMMAND_LENGTH];
     char *tokens[NUM_TOKENS];
-    int i = 0; //for clear up tokens
+    char *tempdir;
+    char dirname[PATH_MAX]; 
+    commandCount = 0;
+    char *cmd = malloc(sizeof(char*));
     
-    //init for histroy 
-    int current_depth = 0;
-    char history[HISTORY_DEPTH][COMMAND_LENGTH];
- 
-// Main loop
+    
+    struct sigaction handler;
+    handler.sa_handler = handle_SIGINT;
+    handler.sa_flags = 0;
+    sigemptyset(&handler.sa_mask);
+    sigaction(SIGINT, &handler, NULL);
+    
+    
     while (true) 
-{
-// Get command
-// Use write because we need to use read()/write() to work with
-// signals, and they are incompatible with printf().
-    printf ("before clear:%s \n", input_buffer);
-    memset(&input_buffer[0], 0, sizeof(input_buffer));
-    printf ("after clear:%s \n", input_buffer);
-	char* dirname = getcwd(NULL, 0);
-	strcat(dirname, " > ");
-    write(STDOUT_FILENO, dirname, strlen(dirname) + 1);
+    {
 
-    _Bool in_background = false;
 
-// Clear last tokens list
-    while (tokens[i] != NULL){
-        tokens[i] = NULL;
-        i++;
-    }
+        _Bool in_background = false;
+        tempdir = getcwd(NULL, 0);
+        strcpy(dirname, tempdir);
+    	strcat(dirname, " > ");
+    	free(tempdir);
+        write(STDOUT_FILENO, dirname , strlen(dirname) + 1);
     
-//read, save, process commands
-    read_command(input_buffer, tokens, &in_background);
-    printf ("after read: %s \n", input_buffer);
-    current_depth++;
-    history_add(current_depth, history, input_buffer);
-    
-    
-// Filling in tokens list with new commands 
-// from charaters buffer called input_buffer    
-    char *cmd = tokens[0];
-    if (tokens[0] == NULL)
-    {
-    	continue;
-    }
-    if (strcmp(cmd,"exit") == 0)
-    {
-    	exit(-1);
-    	return 0;
-    }
-    if (strcmp(cmd,"pwd") == 0)
-    {
-    	char* dirname2 = getcwd(NULL,0);
-    	write(STDOUT_FILENO, dirname2, strlen(dirname2));
-    	continue;
-    }
-    if (strcmp(cmd,"cd") == 0)
-    {
-    	if (chdir(tokens[1]) == -1)
-    		perror("Can't change directory   Blah");
-    	continue;
-    }
-    if (strcmp(cmd,"history") == 0)
-    {
-    	history_print(current_depth,history);
-    }
-    
-    
-    pid = fork();
-    if (pid == -1)
-    {
-    	perror("Unable to create child process. Terminating.\n");
-    	exit(-1);
-        return 0;
-    }
-    else if (pid == 0)
-    {
-        if (execvp(tokens[0], tokens) == -1)
-        	perror("Can't execute commands\n");;
-        exit(-1);
-        return 0;
-    }
-    else
-    {
-        if (in_background)
+
+        memset(&input_buffer[0], '\0', sizeof(input_buffer) + 1);
+        
+        read_command(input_buffer, tokens, &in_background);
+        
+        
+        if (tokens[0] == NULL)
+        {
         	continue;
-        else 
-        	waitpid(pid, &status, WUNTRACED);
+        }
+        
+
+        
+        cmd = (char*)realloc(cmd, sizeof(tokens[0]) + 1);
+        strcpy(cmd, tokens[0]);
+        
+        
+        if (strcmp(cmd,"exit") == 0)
+        {
+        	break;
+        }
+        
+        if (cmd[0] == '!')
+        {
+            if (cmd[1] == '!')
+            {
+
+                if (commandCount == 0)
+                {
+                    write(STDOUT_FILENO, "No previous command.\n", strlen("No previous command.\n") + 1);
+                    continue;
+                }
+                else
+                {
+                    
+                    do_history(input_buffer, tokens, commandCount, &in_background);
+                    strcpy(cmd, tokens[0]);
+                }
+            }
+            else
+            {
+                char* substr = malloc(sizeof (substr));
+                strncpy(substr, cmd + 1, strlen(cmd) - 1);
+                int a = atoi(substr);
+                if (a == 0)
+                {
+                    write(STDOUT_FILENO, "Invalid command number, must be a positive integer\n", strlen("Invalid command number, must be a positive integer\n") + 1);
+                    continue;
+                }
+                if (a < commandCount - 9)
+                {
+                    write(STDOUT_FILENO, "Can only invoke the last 10 commands\n", strlen("Can only invoke the last 10 commands\n") + 1);
+                    continue;
+                }
+                if (a > commandCount)
+                {
+                    write(STDOUT_FILENO, "Command number too high.\n", strlen("Command number too high.\n") + 1);
+                    continue;
+                }
+                free(substr);
+                
+                do_history(input_buffer, tokens, a, &in_background);
+                strcpy(cmd, tokens[0]);
+
+            }
+        }
+        
+        
+        
+        commandCount++;
+        add_command(input_buffer, commandCount);
+        
+        if (strcmp(cmd,"pwd") == 0)
+        {
+            tempdir = getcwd(NULL,0);
+        	strcpy(dirname,tempdir);
+        	free(tempdir);
+        	strcat(dirname, "\n");
+        	write(STDOUT_FILENO, dirname, strlen(dirname) + 1);
+        	continue;
+        }
+        if (strcmp(cmd,"cd") == 0)
+        {
+        	if (chdir(tokens[1]) == -1)
+        		perror("Can't change directory");
+        	continue;
+        }
+        
+        if (strcmp(cmd,"history") == 0)
+        {
+        	print_commands();
+        	continue;
+        }
+ 
+        pid = fork();
+        char stringer[20];
+        sprintf(stringer, "%d", getpid());
+        if (pid == -1)
+        {
+        	perror("Unable to create child process. Terminating.\n");
+        	exit(-1);
+            return 0;
+        }
+        else if (pid == 0)
+        {
+            if (execvp(tokens[0], tokens) == -1)
+            {
+                write(STDOUT_FILENO, cmd, strlen(cmd) + 1);
+            	write(STDOUT_FILENO, ": Unknown command.\n", strlen(": Unknown command.\n"));
+            	exit(-1);
+            }
+         
+        }
+        else
+        {
+            if (!in_background)
+            {
+                do 
+                {
+                    waitpid(pid, &status, WUNTRACED);
+                }while (!WIFEXITED(status) && !WIFSIGNALED(status));
+            }
+
+        }
+        
+        while (waitpid(-1, NULL, WNOHANG) > 0);
+        for(int i = 0; i < NUM_TOKENS; i++)
+        {
+            free(tokens[i]);
+        }
     }
     
-
-/**
-• * Steps For Basic Shell:
-• * 1. Fork a child process
-• * 2. Child process invokes execvp() using results in token array.
-• * 3. If in_background is false, parent waits for
-• * child to finish. Otherwise, parent loops back to
-• * read_command() again immediately.
-• */
-    }
+    free(cmd);
     return 0;
 }
