@@ -1,4 +1,4 @@
-
+//winnie!
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -28,68 +28,69 @@
 • */
 int tokenize_command(char *buff, char *tokens[])
 {
-	char* token;   // a token is word
+	char* token;
     int pos = 0;
+    int i = 0;
     
+    while (tokens[i] != NULL)
+    {
+        tokens[i] = NULL;
+        i++;
+    }
+
     token = strtok(buff, DELIMITER);
     
+
     while (token != NULL)
     {
-      tokens[pos] = token;
-      token = strtok(NULL, DELIMITER);
-      pos++;
+        tokens[pos] = malloc(sizeof(token[pos]));
+        tokens[pos] = token;
+        token = strtok(NULL, DELIMITER);
+        pos++;
     }
     return pos;
 	
 }
-
 void read_command(char *buff, char *tokens[], _Bool *in_background)
 {
-    
-	*in_background = false;
+  *in_background = false;
+  // Read input
+  int length = read(STDIN_FILENO, buff, COMMAND_LENGTH-1);
+  if ( (length < 0) && (errno !=EINTR) )
+  {
+    perror("Unable to read command. Terminating.\n");
+    exit(-1); /* terminate with error */
+  }
 
-	// Read input
-	
-	int length = read(STDIN_FILENO, buff, COMMAND_LENGTH-1);
-	if ( (length < 0) && (errno !=EINTR) )
-	{
-		perror("Unable to read command. Terminating.\n");
-		exit(-1); /* terminate with error */
-	}
+  // Null terminate and strip \n.
+  buff[length] = '\0';
+  if (buff[strlen(buff) - 1] == '\n') 
+  {
+    buff[strlen(buff) - 1] = '\0';
+  }
 
-	// Null terminate and strip \n.
-	buff[length] = '\0';
-	if (buff[strlen(buff) - 1] == '\n') 
-	{
-		buff[strlen(buff) - 1] = '\0';
-	}
+  // Tokenize (saving original command string)
+  int token_count = tokenize_command(buff, tokens);
+  
+  if (token_count == 0) 
+  {
+    return;
+  }
 
-
-	// Tokenize (saving original command string)
-	int token_count = tokenize_command(buff, tokens);
-	
-	if (token_count == 0) 
-	{
-		return;
-	}
-
-	// Extract if running in background:
-	if (token_count > 0 && strcmp(tokens[token_count - 1], "&") == 0) 
-	{
-		*in_background = true;
-		tokens[token_count - 1] = 0;
-	}
+  // Extract if running in background:
+  if (token_count > 0 && strcmp(tokens[token_count - 1], "&") == 0) 
+  {
+    *in_background = true;
+    tokens[token_count - 1] = 0;
+  }
 }
 
 void history_add(int current_depth, 
                 char history[HISTORY_DEPTH][COMMAND_LENGTH], 
-                char input_buffer[]){
+                char* input_buffer){
     strcpy(history[current_depth-1], input_buffer);
-    printf ("history current_depth-1 is %s\n", history[current_depth-1]);
-    printf ("input_buffer is %s\n", input_buffer);
-    }
+}
     
-
 void history_print(int current_depth, char history[HISTORY_DEPTH][COMMAND_LENGTH]){
     int firstone; 
     int lastone;
@@ -106,21 +107,14 @@ void history_print(int current_depth, char history[HISTORY_DEPTH][COMMAND_LENGTH
         lastone = current_depth - 1;
     }
     
-    count = tokenize_command(history[firstone], chops);
-/*
-    printf ("history[firstone] is %s\n", history[firstone]);
-    printf ("chops[0] is %s\n", chops[0]);
-    printf ("chops[1] is %s\n", chops[1]);
-/*
     for (i = firstone; i <= lastone; i=i+1){
         count = tokenize_command(history[i], chops);
         printf ("%d  ", i+1);
         for (k = 0; k < count; k=k+1){
-            printf ("%s", chops[k]);
+            printf ("%s ", chops[k]);
         }
         printf ("\n");
     }
-*/
 }
 /**
 • * Main and Execute Commands
@@ -130,24 +124,22 @@ int main(int argc, char* argv[])
     pid_t pid;
     int status;
     char input_buffer[COMMAND_LENGTH];
-    char input_buffercopy[COMMAND_LENGTH];
     char *tokens[NUM_TOKENS];
     int i = 0; //for clear up tokens
     
     //init for histroy 
-    int spot = 0;
     int current_depth = 0;
     char history[HISTORY_DEPTH][COMMAND_LENGTH];
  
-    
 // Main loop
     while (true) 
-    {
-
+{
 // Get command
 // Use write because we need to use read()/write() to work with
 // signals, and they are incompatible with printf().
-
+    printf ("before clear:%s \n", input_buffer);
+    memset(&input_buffer[0], 0, sizeof(input_buffer));
+    printf ("after clear:%s \n", input_buffer);
 	char* dirname = getcwd(NULL, 0);
 	strcat(dirname, " > ");
     write(STDOUT_FILENO, dirname, strlen(dirname) + 1);
@@ -162,8 +154,10 @@ int main(int argc, char* argv[])
     
 //read, save, process commands
     read_command(input_buffer, tokens, &in_background);
+    printf ("after read: %s \n", input_buffer);
     current_depth++;
     history_add(current_depth, history, input_buffer);
+    
     
 // Filling in tokens list with new commands 
 // from charaters buffer called input_buffer    
